@@ -1,0 +1,19 @@
+[project]
+name = "workshop-agent"
+version = "1.0.0"
+description = "Substrate-agnostic agent core: LLM loop, model clients, agents, tools, review orchestration."
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.9",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/workshop_agent"]

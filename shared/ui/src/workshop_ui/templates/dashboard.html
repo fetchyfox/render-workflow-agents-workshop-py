@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{TITLE}}</title>
+  <link rel="stylesheet" href="/dashboard.css" />
+</head>
+<body>
+  <main class="shell">
+    <h1><img class="brand-logo" src="/render-logo.svg" alt="" aria-hidden="true" />{{TITLE}}</h1>
+    <p class="sub">Paste a GitHub PR URL or pick an existing PR from the field, then run the code-review agent. Telemetry below.</p>
+
+    <form id="run">
+      <div class="control-row">
+        <div id="workflow-control" class="workflow-control" hidden>
+          <span class="workflow-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="6" height="6"></rect><rect x="15" y="15" width="6" height="6"></rect><path d="M9 6h4a3 3 0 0 1 3 3v6"></path></svg>Workflow</span>
+          <select id="workflow" class="workflow-select" aria-label="Workflow"></select>
+          <svg class="workflow-chevron icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </div>
+        <div class="pr-control">
+          <input id="pr" type="url" placeholder="Paste a PR URL or choose an existing PR" autocomplete="off" required />
+          <button type="button" id="pr-picker" class="input-picker" aria-label="Show existing PRs">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+          <div id="pr-options" class="pr-options" role="listbox" hidden>
+            <button type="button" class="pr-option" data-url="https://github.com/mastra-ai/mastra/pull/17704">
+              <span class="pr-option-url">https://github.com/mastra-ai/mastra/pull/17704</span>
+              <span class="pr-option-label">Mastra frontend path</span>
+              <span class="pr-option-note">Small Playground UI fix touching .tsx files. Good when you want the UX reviewer to join the fan-out.</span>
+            </button>
+            <button type="button" class="pr-option" data-url="https://github.com/run-llama/LlamaIndexTS/pull/2234">
+              <span class="pr-option-url">https://github.com/run-llama/LlamaIndexTS/pull/2234</span>
+              <span class="pr-option-label">LlamaIndex baseline</span>
+              <span class="pr-option-note">Small OpenAI provider fix. Good for the first Pattern 1 run.</span>
+            </button>
+            <button type="button" class="pr-option" data-url="https://github.com/openai/openai-agents-js/pull/1368">
+              <span class="pr-option-url">https://github.com/openai/openai-agents-js/pull/1368</span>
+              <span class="pr-option-label">OpenAI Agents trace</span>
+              <span class="pr-option-note">Streaming and chat completions tracing fix. Good for showing an agent SDK change.</span>
+            </button>
+          </div>
+        </div>
+        <button type="submit" id="go"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg><span>Review</span></button>
+        <button type="button" id="refresh" class="secondary"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 16h5v5"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 8h-5V3"></path></svg><span>Refresh</span></button>
+      </div>
+      <div id="submit-status" class="status-line" role="status" aria-live="polite"></div>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th><span class="th-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 9v12"></path><path d="M9 18h6"></path></svg>PR</span></th>
+          <th><span class="th-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path></svg>Source</span></th>
+          <th><span class="th-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="6" height="6"></rect><rect x="15" y="15" width="6" height="6"></rect><path d="M9 6h4a3 3 0 0 1 3 3v6"></path></svg>Workflow</span></th>
+          <th><span class="th-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Status</span></th>
+          <th><span class="th-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path></svg>Verdict</span></th>
+          <th><span class="th-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4"></path><path d="M20 9V5a1 1 0 0 0-1-1h-4"></path><path d="M4 15v4a1 1 0 0 0 1 1h4"></path><path d="M20 15v4a1 1 0 0 1-1 1h-4"></path><path d="M9 12h6"></path></svg>Tokens</span></th>
+          <th><span class="th-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>Run time (s)</span></th>
+        </tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="7" class="muted">Loading...</td></tr></tbody>
+    </table>
+  </main>
+
+  <script type="module">
+    const rows = document.getElementById('rows')
+    const form = document.getElementById('run')
+    const pr = document.getElementById('pr')
+    const prPicker = document.getElementById('pr-picker')
+    const prOptions = document.getElementById('pr-options')
+    const go = document.getElementById('go')
+    const refresh = document.getElementById('refresh')
+    const workflow = document.getElementById('workflow')
+    const workflowControl = document.getElementById('workflow-control')
+    const submitStatus = document.getElementById('submit-status')
+    let openId = null
+    let activeTimer = null
+    let loading = false
+    const ACTIVE_REFRESH_MS = 1500
+
+    const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+    const fmtVal = (v) => { if (v === null || v === undefined) return ''; if (typeof v === 'string') return v; try { return JSON.stringify(v, null, 2) } catch { return String(v) } }
+    const isActiveStatus = (status) => status === 'running' || status === 'queued'
+    const iconPaths = {
+      activity: '<path d="M22 12h-4l-3 8L9 4l-3 8H2"></path>',
+      alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path>',
+      check: '<path d="M20 6 9 17l-5-5"></path>',
+      fileText: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path>',
+      loader: '<path d="M21 12a9 9 0 1 1-6.2-8.6"></path>',
+      review: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle>',
+      sparkles: '<path d="M9.9 10.8 8 16l-1.9-5.2L1 9l5.1-1.8L8 2l1.9 5.2L15 9Z"></path><path d="M18 15l-1 3-3 1 3 1 1 3 1-3 3-1-3-1Z"></path>',
+      x: '<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>',
+    }
+
+    function icon(name) {
+      return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + (iconPaths[name] || iconPaths.activity) + '</svg>'
+    }
+
+    function statusIcon(status) {
+      if (status === 'done') return 'check'
+      if (status === 'error') return 'x'
+      if (isActiveStatus(status)) return 'loader'
+      return 'activity'
+    }
+
+    function verdictIcon(verdict) {
+      if (verdict === 'approve') return 'check'
+      if (verdict === 'request-changes') return 'x'
+      return 'activity'
+    }
+
+    function setStatus(message, state) {
+      submitStatus.innerHTML = message ? icon(state === 'error' ? 'alert' : 'activity') + '<span>' + esc(message) + '</span>' : ''
+      submitStatus.dataset.state = state || ''
+    }
+
+    function setSubmitting(isSubmitting) {
+      go.disabled = isSubmitting
+      pr.disabled = isSubmitting
+      workflow.disabled = isSubmitting
+      go.classList.toggle('loading', isSubmitting)
+      go.innerHTML = icon(isSubmitting ? 'loader' : 'review') + '<span>' + (isSubmitting ? 'Reviewing...' : 'Review') + '</span>'
+    }
+
+    function clearActiveRefresh() {
+      if (activeTimer) clearTimeout(activeTimer)
+      activeTimer = null
+    }
+
+    function scheduleActiveRefresh(list) {
+      clearActiveRefresh()
+      if (!list.some((rv) => isActiveStatus(rv.status))) return
+      activeTimer = setTimeout(() => { void refreshActiveRows() }, ACTIVE_REFRESH_MS)
+    }
+
+    async function refreshActiveRows() {
+      if (loading) return
+      try {
+        const list = await fetch('api/reviews').then((r) => r.json())
+        for (const rv of list) {
+          const tr = rows.querySelector('tr.review[data-review-id="' + esc(rv.id) + '"]')
+          if (tr) tr.innerHTML = reviewCells(rv)
+        }
+        if (openId) {
+          const tr = rows.querySelector('tr.review[data-review-id="' + esc(openId) + '"]')
+          if (tr) await toggle(openId, tr, true)
+        }
+        scheduleActiveRefresh(list)
+      } catch {}
+    }
+
+    function inlineMarkdown(value) {
+      return esc(value)
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\x60([^\x60]+)\x60/g, '<code>$1</code>')
+    }
+
+    function renderMarkdown(value) {
+      const text = String(value ?? '').trim()
+      if (!text) return '<div class="markdown-box"><p><span class="muted">-</span></p></div>'
+      const lines = text.replace(/\r\n/g, '\n').split('\n')
+      const parts = []
+      let list = []
+      const flushList = () => {
+        if (!list.length) return
+        parts.push('<ul>' + list.map((item) => '<li>' + inlineMarkdown(item) + '</li>').join('') + '</ul>')
+        list = []
+      }
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed) { flushList(); continue }
+        const bullet = trimmed.match(/^[-*]\s+(.+)$/)
+        if (bullet) {
+          list.push(bullet[1])
+          continue
+        }
+        flushList()
+        if (/^-{3,}$/.test(trimmed)) {
+          parts.push('<hr>')
+        } else if (/^#{1,4}\s+/.test(trimmed)) {
+          parts.push('<p><strong>' + inlineMarkdown(trimmed.replace(/^#{1,4}\s+/, '')) + '</strong></p>')
+        } else {
+          parts.push('<p>' + inlineMarkdown(trimmed) + '</p>')
+        }
+      }
+      flushList()
+      return '<div class="markdown-box">' + parts.join('') + '</div>'
+    }
+
+    async function loadWorkflows() {
+      try {
+        const res = await fetch('api/workflows')
+        if (!res.ok) return
+        const names = await res.json()
+        if (!Array.isArray(names) || names.length < 2) return
+        workflow.innerHTML = names.map((n) => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('')
+        workflowControl.hidden = false
+        workflowControl.parentElement.classList.add('has-workflows')
+      } catch {}
+    }
+
+    async function load(options = {}) {
+      if (loading) return
+      loading = true
+      refresh.disabled = true
+      const scrollY = options.preserveScroll ? window.scrollY : null
+      try {
+        const list = await fetch('api/reviews').then((r) => r.json())
+        const hasActiveReview = list.some((rv) => isActiveStatus(rv.status))
+        rows.innerHTML = list.length ? '' : '<tr><td colspan="7" class="muted">No reviews yet.</td></tr>'
+        for (const rv of list) {
+          const tr = document.createElement('tr')
+          tr.className = 'review'
+          tr.dataset.reviewId = rv.id
+          tr.innerHTML = reviewCells(rv)
+          tr.onclick = () => { togglePrOptions(false); void toggle(rv.id, tr) }
+          rows.append(tr)
+          if (rv.id === openId) await toggle(rv.id, tr, true)
+        }
+        scheduleActiveRefresh(list)
+      } catch (err) {
+        if (!options.silent) {
+          const message = err instanceof Error ? err.message : String(err)
+          setStatus('Could not refresh reviews: ' + message, 'error')
+        }
+      } finally {
+        refresh.disabled = false
+        loading = false
+        if (scrollY !== null) requestAnimationFrame(() => window.scrollTo(0, scrollY))
+      }
+    }
+
+    function shortPr(u) { try { const p = new URL(u).pathname.split('/'); return p[1] + '/' + p[2] + '#' + p[4] } catch { return u } }
+
+    function reviewCells(rv) {
+      return '<td><code>' + esc(shortPr(rv.pr_url)) + '</code></td>' +
+        '<td>' + (rv.source ? '<code>' + esc(rv.source) + '</code>' : '<span class="muted">-</span>') + '</td>' +
+        '<td>' + (rv.workflow ? '<code>' + esc(rv.workflow) + '</code>' : '<span class="muted">-</span>') + '</td>' +
+        '<td><span class="pill ' + esc(rv.status) + '">' + icon(statusIcon(rv.status)) + '<span>' + esc(rv.status) + '</span></span></td>' +
+        '<td>' + (rv.verdict ? '<span class="pill ' + esc(rv.verdict) + '">' + icon(verdictIcon(rv.verdict)) + '<span>' + esc(rv.verdict) + '</span></span>' : '<span class="muted">-</span>') + '</td>' +
+        '<td class="muted">' + (rv.input_tokens + rv.output_tokens) + '</td>' +
+        '<td class="muted">' + runtime(rv) + '</td>'
+    }
+
+    function runtime(rv) {
+      if (rv.status === 'running') return '-'
+      const ms = new Date(rv.updated_at).getTime() - new Date(rv.created_at).getTime()
+      if (!Number.isFinite(ms) || ms < 0) return '-'
+      return (ms / 1000).toFixed(1)
+    }
+
+    async function toggle(id, tr, force) {
+      let existing = tr.nextElementSibling
+      if (existing && existing.classList.contains('detail') && !force) { existing.remove(); openId = null; return }
+      rows.querySelectorAll('tr.detail').forEach((row) => {
+        if (row !== existing) row.remove()
+      })
+      existing = tr.nextElementSibling
+      openId = id
+      const data = await fetch('api/reviews/' + id).then((r) => r.json())
+      const detail = existing && existing.classList.contains('detail') ? existing : document.createElement('tr')
+      const openSpans = new Set([...detail.querySelectorAll('details.span[open] summary code')].map((el) => el.textContent))
+      const hadAllOpen = !!detail.querySelector('details.span') && [...detail.querySelectorAll('details.span')].every((d) => d.open)
+      detail.className = 'detail'
+      const findings = data.findings.map((f) => '<article class="finding"><h5>' + esc(f.agent) + '</h5>' + renderMarkdown(f.note) + '</article>').join('') || '<span class="muted">No findings recorded.</span>'
+      const spanBody = (s) => {
+        const parts = []
+        const inp = fmtVal(s.input); if (inp) parts.push('<div class="span-io"><span class="label">input</span><pre>' + esc(inp) + '</pre></div>')
+        const out = fmtVal(s.output); if (out) parts.push('<div class="span-io"><span class="label">output</span><pre>' + esc(out) + '</pre></div>')
+        if (s.error) parts.push('<div class="span-io"><span class="label">error</span><pre>' + esc(s.error) + '</pre></div>')
+        return parts.join('') || '<div class="span-io"><span class="muted">No details recorded.</span></div>'
+      }
+      const spans = data.spans.map((s) => '<details class="span"><summary><code>' + esc(s.kind) + ':' + esc(s.name) + '</code> - ' + esc(s.status) + '</summary>' + spanBody(s) + '</details>').join('')
+      const spansHeader = data.spans.length
+        ? '<h4>' + icon('activity') + 'Agent spans <button type="button" class="link toggle-spans">expand all</button></h4>'
+        : '<h4>' + icon('activity') + 'Agent spans</h4>'
+      detail.innerHTML = '<td colspan="7"><div class="reason-block"><h4>' + icon('fileText') + 'Reason</h4>' + renderMarkdown(data.review.reason || '-') + '</div><h4>' + icon('sparkles') + 'Reviewer findings</h4>' + findings + spansHeader + (spans || '<span class="muted">No spans recorded.</span>') + '</td>'
+      if (!detail.parentElement) tr.after(detail)
+      detail.querySelectorAll('details.span').forEach((d) => {
+        const key = d.querySelector('summary code')?.textContent
+        d.open = hadAllOpen || openSpans.has(key)
+      })
+      const toggleBtn = detail.querySelector('.toggle-spans')
+      if (toggleBtn) {
+        const all = [...detail.querySelectorAll('details.span')]
+        toggleBtn.textContent = all.length && all.every((d) => d.open) ? 'collapse all' : 'expand all'
+        toggleBtn.onclick = () => {
+          const all = [...detail.querySelectorAll('details.span')]
+          const anyClosed = all.some((d) => !d.open)
+          all.forEach((d) => { d.open = anyClosed })
+          toggleBtn.textContent = anyClosed ? 'collapse all' : 'expand all'
+        }
+      }
+    }
+
+    refresh.onclick = () => load()
+    function togglePrOptions(force) {
+      prOptions.hidden = force === undefined ? !prOptions.hidden : !force
+    }
+
+    prPicker.onclick = () => {
+      pr.focus()
+      togglePrOptions(true)
+    }
+    pr.addEventListener('focus', () => togglePrOptions(true))
+    pr.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') togglePrOptions(false)
+    })
+    prOptions.addEventListener('click', (e) => {
+      const option = e.target.closest('.pr-option')
+      if (!option) return
+      pr.value = option.dataset.url
+      togglePrOptions(false)
+      pr.focus()
+    })
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.pr-control')) togglePrOptions(false)
+    })
+
+    form.onsubmit = async (e) => {
+      e.preventDefault()
+      setSubmitting(true)
+      setStatus('', '')
+      try {
+        const payload = { prUrl: pr.value }
+        if (!workflow.hidden && workflow.value) payload.workflow = workflow.value
+        const res = await fetch('api/reviews', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+        if (!res.ok) throw new Error(await res.text())
+        pr.value = ''
+        await load({ silent: true })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        setStatus('Could not start review: ' + message, 'error')
+      } finally {
+        setSubmitting(false)
+      }
+    }
+
+    loadWorkflows()
+    load()
+  </script>
+</body>
+</html>

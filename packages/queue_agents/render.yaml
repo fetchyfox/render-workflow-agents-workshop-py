@@ -1,0 +1,77 @@
+# queue-agents. Web + Background Worker + Valkey + Postgres.
+# Builds from the repo root so the uv workspaces resolve.
+
+projects:
+  - name: agents-workshop-queue
+    environments:
+      - name: production
+        databases:
+          - name: queue-agents-db
+            plan: basic-256mb
+            region: oregon
+            postgresMajorVersion: "18"
+
+        services:
+          # Shared queue + progress bus.
+          - type: keyvalue
+            name: queue-agents-valkey
+            plan: starter
+            region: oregon
+            maxmemoryPolicy: noeviction
+            ipAllowList: []
+
+          # Producer: enqueues jobs, serves the UI, streams progress.
+          - type: web
+            name: queue-agents-web
+            runtime: python
+            region: oregon
+            plan: starter
+            buildCommand: pip install uv && uv sync --frozen --no-dev --package workshop-queue-agents
+            startCommand: uv run python -m queue_agents.web
+            healthCheckPath: /healthz
+            envVars:
+              - key: DATABASE_URL
+                fromDatabase:
+                  name: queue-agents-db
+                  property: connectionString
+              - key: VALKEY_URL
+                fromService:
+                  name: queue-agents-valkey
+                  type: keyvalue
+                  property: connectionString
+              - key: ANTHROPIC_API_KEY
+                sync: false
+              - key: OPENAI_API_KEY
+                sync: false
+              - key: GITHUB_TOKEN
+                sync: false
+              - key: PYTHON_VERSION
+                value: "3.12"
+
+          # Consumer: runs the agent. Scale numInstances up to fan out across PRs.
+          - type: worker
+            name: queue-agents-worker
+            runtime: python
+            region: oregon
+            plan: starter
+            numInstances: 1
+            buildCommand: pip install uv && uv sync --frozen --no-dev --package workshop-queue-agents
+            startCommand: uv run python -m queue_agents.worker
+            envVars:
+              - key: DATABASE_URL
+                fromDatabase:
+                  name: queue-agents-db
+                  property: connectionString
+              - key: VALKEY_URL
+                fromService:
+                  name: queue-agents-valkey
+                  type: keyvalue
+                  property: connectionString
+              - key: ANTHROPIC_API_KEY
+                sync: false
+              - key: OPENAI_API_KEY
+                sync: false
+              - key: GITHUB_TOKEN
+                sync: false
+              - key: PYTHON_VERSION
+                value: "3.12"

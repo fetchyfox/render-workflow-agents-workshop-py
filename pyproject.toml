@@ -1,0 +1,52 @@
+[project]
+name = "render-agents-workshop"
+version = "1.0.0"
+description = "One agentic code-review use case, three Render execution substrates: in-process, worker+queue, and Workflows."
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "shared/agent",
+    "shared/db",
+    "shared/ui",
+    "packages/naive_agent",
+    "packages/queue_agents",
+    "packages/workflow_agents",
+]
+
+[tool.uv.sources]
+workshop-agent = { workspace = true }
+workshop-db = { workspace = true }
+workshop-ui = { workspace = true }
+workshop-naive-agent = { workspace = true }
+workshop-queue-agents = { workspace = true }
+workshop-workflow-agents = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pyyaml>=6.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true

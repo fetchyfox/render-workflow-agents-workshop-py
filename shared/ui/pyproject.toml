@@ -1,0 +1,17 @@
+[project]
+name = "workshop-ui"
+version = "1.0.0"
+description = "Mountable FastAPI telemetry viewer for the review dashboard."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "jinja2>=3.1",
+    "workshop-db",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/workshop_ui"]

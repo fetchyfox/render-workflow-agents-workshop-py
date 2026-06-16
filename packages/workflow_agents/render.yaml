@@ -1,0 +1,38 @@
+# workflow-agents. Web host (FastAPI) + managed Postgres.
+# Builds from the repo root so the uv workspaces resolve.
+#
+# The Workflow service is created separately with the Render CLI — see
+# workshop/participants/03-workflow-agents.md.
+
+projects:
+  - name: agents-workshop-workflows
+    environments:
+      - name: production
+        databases:
+          - name: workflow-agents-db
+            plan: basic-256mb
+            region: oregon
+            postgresMajorVersion: "18"
+
+        services:
+          - type: web
+            name: workflow-agents
+            runtime: python
+            region: oregon
+            plan: starter
+            buildCommand: pip install uv && uv sync --frozen --no-dev --package workshop-workflow-agents
+            startCommand: uv run python -m workflow_agents.server
+            healthCheckPath: /healthz
+            envVars:
+              - key: DATABASE_URL
+                fromDatabase:
+                  name: workflow-agents-db
+                  property: connectionString
+              - key: RENDER_API_KEY
+                sync: false
+              - key: RENDER_WORKFLOW_SLUG
+                sync: false
+              - key: NODE_ENV
+                value: production
+              - key: PYTHON_VERSION
+                value: "3.12"
