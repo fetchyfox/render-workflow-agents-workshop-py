@@ -1,29 +1,25 @@
-# naive-agent. One web service + Postgres.
-# Builds from the repo root so the uv workspaces resolve.
-
 projects:
-  - name: agents-workshop-naive
-    environments:
-      - name: production
-        databases:
-          - name: naive-agent-db
-            plan: basic-256mb
-            region: oregon
-            postgresMajorVersion: "18"
-
-        services:
-          - type: web
-            name: naive-agent
-            runtime: python
-            region: oregon
-            plan: starter
-            buildCommand: pip install uv && uv sync --frozen --no-dev --package workshop-naive-agent
-            startCommand: uv run python -m naive_agent.server
-            healthCheckPath: /healthz
-            envVars:
-              - key: DATABASE_URL
-                fromDatabase:
-                  name: naive-agent-db
-                  property: connectionString
-              - key: PYTHON_VERSION
-                value: "3.12"
+- name: fetchy-cha-agents-workshop-naive
+  environments:
+  - name: production
+    databases:
+    - name: fetchy-cha-naive-agent-db
+      plan: basic-256mb
+      region: oregon
+      postgresMajorVersion: '18'
+    services:
+    - type: web
+      name: fetchy-cha-naive-agent
+      runtime: python
+      region: oregon
+      plan: starter
+      buildCommand: pip install uv && uv sync --frozen --no-dev --package workshop-naive-agent
+      startCommand: uv run python -m naive_agent.server
+      healthCheckPath: /healthz
+      envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fetchy-cha-naive-agent-db
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: '3.12'
